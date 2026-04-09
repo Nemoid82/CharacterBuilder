@@ -2,181 +2,237 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>CharacterBuilder v1.20 - Gemini 2.5 Edition</title>
+    <title>CharacteurBuilder v1.22 - Gemini 3 Preview Edition</title>
     <style>
-        :root { --bg: #1a1a1a; --panel: #252525; --text: #cfcfcf; --accent: #007acc; --ai: #a259ff; --border: #333; }
+        :root { --bg: #1e1e1e; --panel: #252525; --text: #d4d4d4; --accent: #007acc; --ai: #a259ff; --border: #3c3c3c; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Barre latérale */
-        .sidebar { width: 480px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
-        .toolbar { padding: 15px; background: #111; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
-        .scroll-area { flex: 1; overflow-y: auto; padding: 25px; padding-bottom: 100px; }
+        /* Layout : Sidebar large 600px pour le confort */
+        .sidebar { width: 600px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .toolbar { padding: 15px; background: #111; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 25px; padding-bottom: 120px; }
         
-        /* Zone Config */
-        .config-box { background: #0b0b0b; padding: 15px; border: 1px solid var(--ai); border-radius: 8px; margin-bottom: 25px; }
+        /* Configuration IA */
+        .config-box { background: #0b0b0b; padding: 15px; border: 1px solid var(--ai); border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(162, 89, 255, 0.2); }
         
         /* Formulaire */
-        h2 { border-left: 4px solid var(--ai); padding-left: 12px; font-size: 0.85rem; margin: 30px 0 15px 0; color: #eee; text-transform: uppercase; letter-spacing: 1px; }
-        .field-group { margin-bottom: 18px; }
+        h2 { border-left: 4px solid var(--ai); padding-left: 12px; font-size: 0.85rem; margin: 35px 0 15px 0; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        h2:first-of-type { margin-top: 10px; }
+        .field-group { margin-bottom: 20px; }
         label { display: block; font-size: 0.75rem; margin-bottom: 6px; color: #888; font-weight: 600; }
         .input-row { display: flex; gap: 8px; align-items: flex-start; }
         
-        input, textarea, select { 
-            width: 100%; background: #2a2a2a; border: 1px solid var(--border); 
-            color: #fff; padding: 10px; border-radius: 5px; font-family: inherit; 
-            transition: border 0.2s;
-        }
-        input:focus, textarea:focus { border-color: var(--ai); outline: none; background: #333; }
-        textarea { height: 80px; resize: none; }
+        input, textarea, select { width: 100%; background: #333; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 5px; font-family: inherit; font-size: 0.95rem; line-height: 1.4; }
+        textarea { height: 85px; resize: vertical; }
+        input:focus, textarea:focus { border-color: var(--ai); outline: none; background: #3d3d3d; }
 
-        /* Boutons */
-        .btn-mini-ai { 
-            background: #1e1e1e; border: 1px solid var(--ai); color: var(--ai); 
-            width: 42px; height: 42px; border-radius: 5px; cursor: pointer; 
-            font-size: 1.2rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s;
-        }
+        /* Boutons IA Individuels */
+        .btn-mini-ai { background: #1a1a1a; border: 1px solid var(--ai); color: var(--ai); width: 44px; height: 44px; border-radius: 5px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: 0.2s; font-size: 1.2rem; }
         .btn-mini-ai:hover { background: var(--ai); color: white; transform: scale(1.05); }
-        .btn-mini-ai:disabled { opacity: 0.5; cursor: wait; }
 
-        /* Zone de rendu (Papier) */
-        .main { flex: 1; display: flex; flex-direction: column; background: #fdfdfd; color: #2c3e50; overflow-y: auto; }
-        #structure-view { max-width: 800px; margin: 60px auto; padding: 60px; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); min-height: 80vh; }
+        /* Preview (Rendu Papier) */
+        .main { flex: 1; display: flex; flex-direction: column; background: #f0f0f0; color: #333; overflow-y: auto; }
+        .preview-toolbar { background: #fff; padding: 10px 25px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        #structure-view { max-width: 800px; margin: 40px auto; padding: 60px; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); font-family: 'Georgia', serif; line-height: 1.8; font-size: 1.1rem; }
         
-        h1 { border-bottom: 3px solid #2c3e50; padding-bottom: 10px; font-family: 'Playfair Display', serif; font-size: 2rem; margin-top: 0; }
-        .preview-item { margin-bottom: 20px; font-size: 1.1rem; line-height: 1.6; }
-        .preview-label { font-weight: bold; color: #7f8c8d; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        h1 { color: #000; border-bottom: 3px solid #000; padding-bottom: 10px; font-size: 1.8rem; margin-top: 50px; text-transform: uppercase; }
+        h3 { color: var(--accent); border-bottom: 1px solid #eee; margin-top: 30px; font-style: italic; font-size: 1.2rem; }
+        b { color: #000; font-weight: 800; }
+        .tag-missing { color: #e67e22; background: #fef5e7; padding: 2px 5px; border-radius: 3px; font-size: 0.85rem; border: 1px dashed #f39c12; }
+
+        /* Boutons Toolbar */
+        .btn-main { border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; color: white; transition: 0.2s; }
+        .btn-main:hover { opacity: 0.9; transform: translateY(-1px); }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
         <div class="toolbar">
-            <button onclick="saveData()" style="background:#2ecc71; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">💾 Sauvegarder JSON</button>
-            <button onclick="testConnection()" style="background:#34495e; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer;">🔍 Tester la Clé</button>
+            <button class="btn-main" onclick="saveData()" style="background:#27ae60;">💾 SAUVEGARDER</button>
+            <button class="btn-main" onclick="document.getElementById('fileInput').click()" style="background:#2980b9;">📂 CHARGER</button>
+            <input type="file" id="fileInput" style="display:none" onchange="loadData(event)">
+            <button class="btn-main" onclick="askAIGlobal()" style="background:#8e44ad;">✨ IA COMPLÉTER TOUT</button>
+            <button class="btn-main" onclick="testConnection()" style="background:#34495e;">🔍 TEST</button>
         </div>
 
         <div class="scroll-area">
             <div class="config-box">
-                <label style="color:var(--ai)">CLE API GOOGLE AI STUDIO :</label>
+                <label style="color:var(--ai)">CLÉ API GOOGLE AI STUDIO :</label>
                 <input type="password" id="apiKey" placeholder="AIzaSy..." oninput="localStorage.setItem('cb_key', this.value.trim())">
-                
-                <label style="color:var(--ai); margin-top:12px; display:block;">MODELE DETECTE :</label>
+                <label style="color:var(--ai); margin-top:12px; display:block;">SÉLECTION DU MODÈLE :</label>
                 <select id="aiModel" onchange="localStorage.setItem('cb_model', this.value)">
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommandé)</option>
-                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                    <option value="gemini-2.5-pro">Gemini 2.5 Pro (Ultra précis)</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ancien)</option>
+                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Bleeding Edge)</option>
+                    <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (Ultra-Puissant)</option>
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Très rapide)</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Stable)</option>
                 </select>
             </div>
 
-            <h2>Identité & Rôle</h2>
+            <h2>1. Passé & Environnement</h2>
             <div class="field-group"><label>Nom complet</label><div class="input-row"><input type="text" data-key="nom" oninput="updatePreview()"><button class="btn-mini-ai" onclick="askAIField('nom')">✨</button></div></div>
-            <div class="field-group"><label>Métier / Fonction</label><div class="input-row"><input type="text" data-key="metier" oninput="updatePreview()"><button class="btn-mini-ai" onclick="askAIField('metier')">✨</button></div></div>
+            <div class="field-group"><label>Bio synthétique (Passé factuel)</label><div class="input-row"><textarea data-key="bio" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('bio')">✨</button></div></div>
+            <div class="field-group"><label>Habitat (Reflet de son monde)</label><div class="input-row"><textarea data-key="habitat" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('habitat')">✨</button></div></div>
+            <div class="field-group"><label>Activité / Métier</label><div class="input-row"><input type="text" data-key="metier" oninput="updatePreview()"><button class="btn-mini-ai" onclick="askAIField('metier')">✨</button></div></div>
+
+            <h2>2. Singularité & Caractère</h2>
+            <div class="field-group"><label>Manies / TOC / Comportement</label><div class="input-row"><textarea data-key="manies" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('manies')">✨</button></div></div>
+            <div class="field-group"><label>Phobies</label><div class="input-row"><input type="text" data-key="phobies" oninput="updatePreview()"><button class="btn-mini-ai" onclick="askAIField('phobies')">✨</button></div></div>
+            <div class="field-group"><label>Apparence (Signes marquants)</label><div class="input-row"><textarea data-key="apparence" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('apparence')">✨</button></div></div>
+            <div class="field-group"><label>Contradictions / Paradoxes</label><div class="input-row"><textarea data-key="contradictions" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('contradictions')">✨</button></div></div>
+
+            <h2>3. Moteur Psychologique</h2>
+            <div class="field-group"><label>Traumatisme / Blessure</label><div class="input-row"><textarea data-key="trauma" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('trauma')">✨</button></div></div>
+            <div class="field-group"><label>Désir profond</label><div class="input-row"><textarea data-key="desir" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('desir')">✨</button></div></div>
+            <div class="field-group"><label>Besoin inconscient</label><div class="input-row"><textarea data-key="besoin" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('besoin')">✨</button></div></div>
+            <div class="field-group"><label>Illusion (Croyance erronée)</label><div class="input-row"><textarea data-key="illusion" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('illusion')">✨</button></div></div>
+            <div class="field-group"><label>Crédo (L'idée à sacrifier)</label><div class="input-row"><input type="text" data-key="credo" oninput="updatePreview()"><button class="btn-mini-ai" onclick="askAIField('credo')">✨</button></div></div>
+
+            <h2>4. Forces & Failles</h2>
+            <div class="field-group"><label>Défaut (Lié à l'illusion)</label><div class="input-row"><input type="text" data-key="defaut" oninput="updatePreview()"><button class="btn-mini-ai" onclick="askAIField('defaut')">✨</button></div></div>
+            <div class="field-group"><label>Forces réelles</label><div class="input-row"><textarea data-key="forces" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('forces')">✨</button></div></div>
+            <div class="field-group"><label>Relation aux autres</label><div class="input-row"><textarea data-key="relation" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('relation')">✨</button></div></div>
+            <div class="field-group"><label>Moment de vulnérabilité</label><div class="input-row"><textarea data-key="vulnerabilite" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('vulnerabilite')">✨</button></div></div>
+
+            <h2>5. Arc & Évolution</h2>
+            <div class="field-group"><label>Révélation libératrice</label><div class="input-row"><textarea data-key="revelation" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('revelation')">✨</button></div></div>
+            <div class="field-group"><label>Renoncement (Richesse)</label><div class="input-row"><textarea data-key="renoncement" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('renoncement')">✨</button></div></div>
+            <div class="field-group"><label>Conflit Principal</label><div class="input-row"><textarea data-key="conflit" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('conflit')">✨</button></div></div>
             
-            <h2>Univers & Passé</h2>
-            <div class="field-group"><label>Habitat & Environnement</label><div class="input-row"><textarea data-key="habitat" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('habitat')">✨</button></div></div>
-            <div class="field-group"><label>Événement Traumatique</label><div class="input-row"><textarea data-key="trauma" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('trauma')">✨</button></div></div>
-            <div class="field-group"><label>La Révélation Finale</label><div class="input-row"><textarea data-key="revelation" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('revelation')">✨</button></div></div>
+            <div class="field-group"><label>Évo: DÉBUT (Stase)</label><textarea data-key="evo_debut" oninput="updatePreview()"></textarea></div>
+            <div class="field-group"><label>Évo: MILIEU (Ouverture)</label><textarea data-key="evo_milieu" oninput="updatePreview()"></textarea></div>
+            <div class="field-group"><label>Évo: FIN (Transformation)</label><textarea data-key="evo_fin" oninput="updatePreview()"></textarea></div>
         </div>
     </div>
 
     <div class="main">
+        <div class="preview-toolbar">
+            <span style="font-weight:bold; color:#888;">FICHE PERSONNAGE & STRUCTURE</span>
+            <button onclick="copyForScrivener()" style="background:#007acc; border:none; color:white; padding:8px 18px; border-radius:4px; cursor:pointer; font-weight:bold;">COPIER POUR SCRIVENER</button>
+        </div>
         <div id="structure-view"></div>
     </div>
 
     <script>
-        // Chargement des préférences
+        // Restauration des paramètres locaux
         document.getElementById('apiKey').value = localStorage.getItem('cb_key') || "";
         const savedModel = localStorage.getItem('cb_model');
         if (savedModel) document.getElementById('aiModel').value = savedModel;
 
+        const template = `
+            <h1>ACTE 1 — EXPOSITION</h1>
+            <p><strong>Ouverture :</strong> Le récit s'ancre dans le trauma de <b>[nom]</b> : [trauma].</p>
+            <h3>Routine & Stase</h3>
+            <p><b>[nom]</b> vit dans son [habitat] et travaille comme [metier]. Ses manies ([manies]) et son apparence ([apparence]) reflètent son état initial : [evo_debut].</p>
+            <p><strong>L'Illusion :</strong> Il est guidé par son crédo "<b>[credo]</b>", masquant son illusion profonde ([illusion]) et son défaut de [defaut].</p>
+            
+            <h1>ACTE 2 — MISE À L'ÉPREUVE</h1>
+            <p>Le conflit ([conflit]) le pousse hors de son monde clos. Ses forces ([forces]) sont testées, tout comme ses relations ([relation]). <strong>Transition :</strong> [evo_milieu].</p>
+            <p><strong>Le Dilemme :</strong> Pour avancer, devra-t-il sacrifier sa richesse : <b>[renoncement]</b> ? Ses contradictions ([contradictions]) le tourmentent.</p>
+
+            <h1>ACTE 3 — ÉTINCELLE DANS LA NUIT</h1>
+            <p>Tout s'effondre. Au plus bas de sa trajectoire, dans un moment de vulnérabilité extrême ([vulnerabilite]), <b>[nom]</b> accède à la révélation : [revelation]. Il comprend enfin son besoin de [besoin].</p>
+
+            <h1>ACTE 4 — RÉSOLUTION</h1>
+            <p><b>[nom]</b> assouvit son désir de [desir] par une transformation radicale. Il renonce finalement à <b>[renoncement]</b>. <br><strong>Synthèse finale :</strong> [evo_fin]</p>
+        `;
+
         function updatePreview() {
-            let content = "<h1>DOSSIER PERSONNAGE</h1>";
+            let content = template;
             document.querySelectorAll('[data-key]').forEach(input => {
-                const label = input.closest('.field-group').querySelector('label').innerText;
-                const val = input.value.trim() || `<span style="color:#bdc3c7">[En attente de saisie...]</span>`;
-                content += `<div class="preview-item"><span class="preview-label">${label}</span>${val.replace(/\n/g, '<br>')}</div>`;
+                const key = input.dataset.key;
+                const val = input.value.trim() !== "" ? `<b>${input.value}</b>` : `<span class="tag-missing">[${key.toUpperCase()}]</span>`;
+                content = content.replace(new RegExp(`\\[${key}\\]`, 'g'), val);
             });
             document.getElementById('structure-view').innerHTML = content;
-        }
-
-        async function testConnection() {
-            const key = document.getElementById('apiKey').value.trim();
-            if(!key) return alert("Veuillez entrer votre clé API Google.");
-            
-            const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
-            try {
-                const resp = await fetch(url);
-                const data = await resp.json();
-                if(data.error) alert("Erreur : " + data.error.message);
-                else {
-                    const models = data.models.map(m => m.name.replace('models/', ''));
-                    alert("✅ CONNEXION RÉUSSIE !\n\nModèles accessibles :\n" + models.slice(0,8).join('\n'));
-                }
-            } catch (e) { alert("Erreur réseau : " + e.message); }
         }
 
         async function askAI(prompt) {
             const key = document.getElementById('apiKey').value.trim();
             const model = document.getElementById('aiModel').value;
-            
-            if(!key) throw new Error("Clé API manquante");
+            if(!key) throw new Error("Veuillez coller votre clé API.");
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-            
-            const resp = await fetch(url, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
-                })
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
-
-            const data = await resp.json();
+            const data = await response.json();
             if(data.error) throw new Error(data.error.message);
-            
-            if(data.candidates && data.candidates[0].content) {
-                return data.candidates[0].content.parts[0].text;
-            }
-            throw new Error("L'IA n'a pas renvoyé de contenu.");
+            return data.candidates[0].content.parts[0].text;
         }
 
         async function askAIField(key) {
             const el = document.querySelector(`[data-key="${key}"]`);
             const label = el.closest('.field-group').querySelector('label').innerText;
             const btn = event.currentTarget;
+            const context = {};
+            document.querySelectorAll('[data-key]').forEach(i => { if(i.value) context[i.dataset.key] = i.value; });
             
             btn.innerText = "⏳";
-            btn.disabled = true;
-
-            // Construction d'un prompt contextuel simple
-            const context = `Agis comme un écrivain. Propose une idée très créative et unique pour le champ "${label}" d'un personnage. Réponds uniquement par l'idée, sans phrase d'introduction ni guillemets.`;
-
             try {
-                const res = await askAI(context);
-                el.value = res.trim(); 
+                const prompt = `Agis en tant qu'expert en narration. Voici le contexte actuel : ${JSON.stringify(context)}. Propose une idée très originale et surprenante pour le champ "${label}". Réponds uniquement avec l'idée.`;
+                el.value = (await askAI(prompt)).trim();
                 updatePreview();
-            } catch(e) { 
-                alert("Erreur IA: " + e.message); 
-            } finally {
-                btn.innerText = "✨";
-                btn.disabled = false;
-            }
+            } catch(e) { alert("Erreur IA: " + e.message); }
+            finally { btn.innerText = "✨"; }
+        }
+
+        async function askAIGlobal() {
+            const empty = []; const context = {};
+            document.querySelectorAll('[data-key]').forEach(i => {
+                if(!i.value.trim()) empty.push(i.dataset.key);
+                else context[i.dataset.key] = i.value;
+            });
+            if(empty.length === 0) return alert("Tous les champs sont remplis.");
+            try {
+                const prompt = `Voici un personnage : ${JSON.stringify(context)}. Remplis les champs vides ${empty.join(', ')} de manière cohérente et créative. Réponds uniquement en JSON pur : {"clé": "idée"}`;
+                const res = await askAI(prompt);
+                const json = JSON.parse(res.match(/\{[\s\S]*\}/)[0]);
+                for(let k in json) {
+                    const input = document.querySelector(`[data-key="${k}"]`);
+                    if(input && !input.value) input.value = json[k];
+                }
+                updatePreview();
+            } catch(e) { alert(e.message); }
         }
 
         function saveData() {
-            const data = { date: new Date().toISOString() }; 
-            document.querySelectorAll('[data-key]').forEach(i => data[i.dataset.key] = i.value);
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+            const data = {}; document.querySelectorAll('[data-key]').forEach(i => data[i.dataset.key] = i.value);
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `personnage_${new Date().getTime()}.json`; 
-            a.click();
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type: "application/json"}));
+            a.download = `Perso_${data.nom || 'SansNom'}.json`; a.click();
         }
 
-        // Init
+        function loadData(event) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    for(let k in data) {
+                        const el = document.querySelector(`[data-key="${k}"]`);
+                        if(el) el.value = data[k];
+                    }
+                    updatePreview();
+                } catch(e) { alert("Erreur de chargement du fichier."); }
+            };
+            reader.readAsText(event.target.files[0]);
+        }
+
+        function testConnection() {
+            askAI("Dis 'Test OK'").then(r => alert("Connexion réussie !")).catch(e => alert(e.message));
+        }
+
+        function copyForScrivener() {
+            const range = document.createRange();
+            range.selectNode(document.getElementById('structure-view'));
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            alert("Contenu riche copié ! Collez-le directement dans Scrivener.");
+        }
+
         updatePreview();
     </script>
 </body>
