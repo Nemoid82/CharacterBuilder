@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>CharacteurBuilder v1.6</title>
+    <title>CharacteurBuilder v1.7</title>
     <style>
         :root { --bg: #1e1e1e; --panel: #2b2b2b; --text: #d4d4d4; --accent: #007acc; --ai-color: #8e44ad; --border: #3c3c3c; --input-bg: #333; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -32,13 +32,16 @@
     <div class="sidebar">
         <div class="toolbar">
             <button class="primary btn-save" onclick="saveData()">Sauvegarder</button>
-            <button class="primary btn-ai-global" id="btnGlobal" onclick="askAIGlobal()">✨ Remplissage Global</button>
-            <span id="global-loading">IA en cours...</span>
+            <button class="primary btn-ai-global" id="btnGlobal" onclick="askAIGlobal()">✨ IA Global</button>
+            <span id="global-loading">IA...</span>
         </div>
         <div class="scroll-area">
-            <div style="font-size: 0.65rem; margin-bottom: 20px; opacity: 0.5;">
-                API Key : <input type="password" id="apiKey" placeholder="Collez votre clé API..." style="width:150px; background:transparent; color:#fff; border:1px solid #444;">
+            <div style="font-size: 0.65rem; margin-bottom: 20px; background: #222; padding: 10px; border-radius: 5px;">
+                <label>VOTRE CLÉ API GOOGLE :</label>
+                <input type="password" id="apiKey" placeholder="Collez votre clé ici..." oninput="saveKey()" style="width:100%; margin-top:5px; font-size: 10px; height: 25px;">
+                <p style="color: #666; margin-top: 5px;">Elle est sauvegardée localement dans votre navigateur.</p>
             </div>
+            
             <h2>1. Identité & Passé</h2>
             <div class="field-group"><label>Nom</label><div class="input-row"><input type="text" data-key="nom" oninput="updatePreview()"><button class="btn-mini-ai" onclick="askAIField('nom')">✨</button></div></div>
             <div class="field-group"><label>Bio synthétique</label><div class="input-row"><textarea data-key="bio" oninput="updatePreview()"></textarea><button class="btn-mini-ai" onclick="askAIField('bio')">✨</button></div></div>
@@ -65,15 +68,21 @@
         </div>
     </div>
     <div class="main">
-        <div class="preview-header"><span style="font-weight:bold;color:#888;">PREVIEW</span><button class="primary" onclick="copyForScrivener()" style="background:#007acc;color:#fff;">Copier</button></div>
+        <div class="preview-header">
+            <span style="font-weight:bold;color:#888;">DOCUMENT STRUCTUREL</span>
+            <button class="primary" onclick="copyForScrivener()" style="background:#007acc;color:#fff;">Copier pour Scrivener</button>
+        </div>
         <div id="structure-view"></div>
     </div>
 
     <script>
+        // Chargement de la clé au démarrage
+        document.getElementById('apiKey').value = localStorage.getItem('cb_apikey') || "";
+
         const structureTemplate = `
             <h1>ACTE 1 — EXPOSITION</h1>
-            <p><strong>Ouverture :</strong> Liée au trauma de <b>[nom]</b> : [trauma].</p>
-            <p><strong>Routine :</strong> Vit dans son [habitat] comme [metier]. Ses manies : [manies].</p>
+            <p>Le récit s'ouvre sur le trauma de <b>[nom]</b> : [trauma].</p>
+            <p>Il vit dans son [habitat] comme [metier]. Ses manies : [manies].</p>
             <p><strong>Thèse :</strong> Illusion : [illusion]. Crédo : "<b>[credo]</b>".</p>
             <p><strong>Évolution (Début) :</strong> [evo_debut]</p>
             <h1>ACTE 2 — MISE À L'ÉPREUVE</h1>
@@ -83,6 +92,10 @@
             <h1>ACTE 4 — RÉSOLUTION</h1>
             <p>Choix final fait. <strong>Évolution (Fin) :</strong> [evo_fin]</p>
         `;
+
+        function saveKey() {
+            localStorage.setItem('cb_apikey', document.getElementById('apiKey').value);
+        }
 
         function updatePreview() {
             let content = structureTemplate;
@@ -94,9 +107,13 @@
         }
 
         async function callAI(prompt) {
-            const apiKey = document.getElementById('apiKey').value;
-            // PASSAGE EN V1BETA POUR PLUS DE COMPATIBILITÉ
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const key = document.getElementById('apiKey').value.trim();
+            if(!key) {
+                alert("ERREUR : Vous devez coller votre clé API Google dans le champ en haut à gauche.");
+                throw new Error("Clé manquante");
+            }
+            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -113,7 +130,7 @@
             document.querySelectorAll('[data-key]').forEach(i => { if(i.value) context[i.dataset.key] = i.value; });
             const oldVal = el.value; el.value = "Réflexion...";
             try {
-                const prompt = `Voici un personnage : ${JSON.stringify(context)}. Propose une idée originale pour le champ "${key}". Réponds uniquement avec la suggestion.`;
+                const prompt = `Voici un personnage : ${JSON.stringify(context)}. Propose une idée originale pour le champ "${key}". Réponds uniquement avec la suggestion percutante.`;
                 el.value = (await callAI(prompt)).trim();
                 updatePreview();
             } catch (e) { alert("Erreur: " + e.message); el.value = oldVal; }
@@ -127,6 +144,7 @@
                 if(!i.value.trim()) emptyKeys.push(i.dataset.key);
                 else context[i.dataset.key] = i.value;
             });
+            if(emptyKeys.length === 0) return alert("Tout est déjà rempli !");
             btn.disabled = true; loader.style.display = "inline";
             try {
                 const prompt = `Voici un personnage : ${JSON.stringify(context)}. Remplis les champs vides : ${emptyKeys.join(', ')}. Réponds EXCLUSIVEMENT en JSON pur : {"clé": "idée"}`;
@@ -158,7 +176,7 @@
             window.getSelection().removeAllRanges();
             window.getSelection().addRange(range);
             document.execCommand('copy');
-            alert("Copié !");
+            alert("Copié avec mise en forme !");
         }
         updatePreview();
     </script>
