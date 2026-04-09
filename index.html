@@ -2,11 +2,11 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>CharacterBuilder v1.12 - Diagnostic</title>
+    <title>CharacterBuilder v1.12 - Fix</title>
     <style>
         :root { --bg: #1a1a1a; --panel: #252525; --text: #cfcfcf; --accent: #007acc; --ai: #8e44ad; --border: #333; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        .sidebar { width: 600px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar { width: 450px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
         .toolbar { padding: 15px; background: #111; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
         .scroll-area { flex: 1; overflow-y: auto; padding: 25px; padding-bottom: 100px; }
         .config-box { background: #000; padding: 15px; border: 2px solid var(--ai); border-radius: 8px; margin-bottom: 25px; }
@@ -15,8 +15,9 @@
         label { display: block; font-size: 0.75rem; margin-bottom: 5px; color: #888; font-weight: bold; }
         .input-row { display: flex; gap: 5px; }
         input, textarea, select { width: 100%; background: #2a2a2a; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 4px; font-family: inherit; }
-        textarea { height: 75px; }
-        .btn-mini-ai { background: transparent; border: 1px solid var(--ai); color: var(--ai); padding: 0 12px; border-radius: 4px; cursor: pointer; }
+        textarea { height: 75px; resize: vertical; }
+        .btn-mini-ai { background: transparent; border: 1px solid var(--ai); color: var(--ai); padding: 0 12px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .btn-mini-ai:hover { background: var(--ai); color: white; }
         .main { flex: 1; display: flex; flex-direction: column; background: #fff; color: #333; }
         #structure-view { flex: 1; overflow-y: auto; padding: 50px; line-height: 1.8; font-family: 'Georgia', serif; }
         h1 { border-bottom: 2px solid #000; padding-bottom: 5px; font-size: 1.3rem; }
@@ -32,10 +33,12 @@
             <div class="config-box">
                 <label style="color:var(--ai)">1. CLÉ API GOOGLE :</label>
                 <input type="password" id="apiKey" placeholder="AIzaSy..." oninput="localStorage.setItem('cb_key', this.value.trim())">
+                
                 <label style="color:var(--ai); margin-top:10px; display:block;">2. MODÈLE :</label>
                 <select id="aiModel" onchange="localStorage.setItem('cb_model', this.value)">
-                    <option value="gemini-1.5-flash">gemini-1.5-flash (Standard)</option>
-                    <option value="gemini-pro">gemini-pro (Ancien mais stable)</option>
+                    <option value="gemini-1.5-flash">gemini-1.5-flash (Rapide)</option>
+                    <option value="gemini-1.5-pro">gemini-1.5-pro (Intelligent)</option>
+                    <option value="gemini-1.0-pro">gemini-1.0-pro (Stable)</option>
                 </select>
             </div>
 
@@ -52,23 +55,25 @@
     </div>
 
     <script>
+        // Initialisation des données stockées
         document.getElementById('apiKey').value = localStorage.getItem('cb_key') || "";
-        document.getElementById('aiModel').value = localStorage.getItem('cb_model') || "gemini-1.5-flash";
+        const savedModel = localStorage.getItem('cb_model');
+        if (savedModel) document.getElementById('aiModel').value = savedModel;
 
         function updatePreview() {
-            let content = "<h1>STRUCTURE</h1>";
+            let content = "<h1>STRUCTURE DU PERSONNAGE</h1>";
             document.querySelectorAll('[data-key]').forEach(input => {
-                const val = input.value.trim() || `[${input.dataset.key.toUpperCase()}]`;
-                content += `<p><strong>${input.dataset.key}:</strong> ${val}</p>`;
+                const label = input.closest('.field-group').querySelector('label').innerText;
+                const val = input.value.trim() || `<span style="color:#ccc">[VIDE]</span>`;
+                content += `<p><strong>${label} :</strong> ${val}</p>`;
             });
             document.getElementById('structure-view').innerHTML = content;
         }
 
         async function testConnection() {
             const key = document.getElementById('apiKey').value.trim();
-            if(!key) return alert("Collez votre clé !");
+            if(!key) return alert("Veuillez entrer une clé API !");
             
-            // On tente de lister les modèles disponibles pour voir ce que la clé autorise
             const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
             try {
                 const resp = await fetch(url);
@@ -76,42 +81,72 @@
                 if(data.error) alert("Erreur Google : " + data.error.message);
                 else {
                     const models = data.models.map(m => m.name.replace('models/', ''));
-                    alert("CONNEXION RÉUSSIE !\nModèles autorisés pour votre clé :\n" + models.join('\n'));
+                    alert("CONNEXION RÉUSSIE !\n\nModèles disponibles pour votre clé :\n" + models.slice(0,10).join('\n') + "\n...");
                 }
             } catch (e) { alert("Erreur réseau : " + e.message); }
         }
 
         async function askAI(prompt) {
             const key = document.getElementById('apiKey').value.trim();
-            const model = document.getElementById('aiModel').value;
+            let model = document.getElementById('aiModel').value;
             
-            // Utilisation forcée de v1beta qui est la seule supportant Flash correctement
+            if(!key) throw new Error("Clé API manquante");
+
+            // Correction de sécurité pour les anciens noms
+            if(model === "gemini-pro") model = "gemini-1.5-flash";
+
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
             
             const resp = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                body: JSON.stringify({ 
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 100 }
+                })
             });
+
             const data = await resp.json();
             if(data.error) throw new Error(data.error.message);
-            return data.candidates[0].content.parts[0].text;
+            
+            if(data.candidates && data.candidates[0].content) {
+                return data.candidates[0].content.parts[0].text;
+            }
+            throw new Error("Réponse vide de l'IA");
         }
 
         async function askAIField(key) {
             const el = document.querySelector(`[data-key="${key}"]`);
+            const label = el.closest('.field-group').querySelector('label').innerText;
+            const btn = event.target;
+            
+            const originalText = btn.innerText;
+            btn.innerText = "⏳";
+            btn.disabled = true;
+
             try {
-                const res = await askAI(`Propose une idée courte pour ${key}`);
-                el.value = res.trim(); updatePreview();
-            } catch(e) { alert("Erreur IA: " + e.message); }
+                const res = await askAI(`Génère une idée créative, courte et originale pour le champ "${label}" d'un personnage de fiction. Réponds directement par l'idée, sans introduction.`);
+                el.value = res.trim(); 
+                updatePreview();
+            } catch(e) { 
+                alert("Erreur IA: " + e.message); 
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         }
 
         function saveData() {
-            const data = {}; document.querySelectorAll('[data-key]').forEach(i => data[i.dataset.key] = i.value);
+            const data = {}; 
+            document.querySelectorAll('[data-key]').forEach(i => data[i.dataset.key] = i.value);
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type: "application/json"}));
-            a.download = "personnage.json"; a.click();
+            a.href = URL.createObjectURL(blob);
+            a.download = "personnage.json"; 
+            a.click();
         }
+
+        // Premier affichage
         updatePreview();
     </script>
 </body>
